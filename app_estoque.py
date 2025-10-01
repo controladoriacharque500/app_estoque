@@ -13,12 +13,12 @@ COLUNAS_EXIBICAO = [
     'Produto', 
     'Grupo_de_Estoque', 
     'Em_Estoque', 
-    ' Media de venda semanal', 
+    'Media de venda semanal', 
     'Analise de estoque'
 ]
 
 # Colunas que precisam de limpeza e conversão numérica
-COLUNAS_NUMERICAS_LIMPEZA = ['Em_Estoque', ' Media de venda semanal'] 
+COLUNAS_NUMERICAS_LIMPEZA = ['Em_Estoque', 'Media de venda semanal'] 
 
 # --- Configurações de Página ---
 st.set_page_config(
@@ -41,28 +41,26 @@ def formatar_br_numero(x):
     return s.replace('.', '#TEMP#').replace(',', '.').replace('#TEMP#', ',')
 
 
-# --- Conexão e Carregamento de Dados (SOLUÇÃO DE LIMPEZA DE CHAVE) ---
+# --- Conexão e Carregamento de Dados (SOLUÇÃO FINAL E SEGURA) ---
 @st.cache_data(ttl=600)
 def load_data():
     """Conecta e carrega os dados da planilha, garantindo tipos numéricos."""
     try:
         # Tenta carregar do Streamlit Secrets (modo Cloud)
         if "gcp_service_account" in st.secrets:
-            # --- Rotina de Limpeza da Chave Privada ---
+            # --- Rotina de Limpeza da Chave Privada (Correção do Erro .copy() e Base64) ---
             
-            # 1. Copia o dicionário de segredos para manipulação
-            secrets_dict = st.secrets["gcp_service_account"].copy() 
+            # 1. CONVERTE o objeto de segredo em um dicionário normal, resolvendo o erro '.copy()'
+            secrets_dict = dict(st.secrets["gcp_service_account"])
             
             # 2. Extrai o valor potencialmente corrompido
             private_key_corrompida = secrets_dict["private_key"]
             
-            # 3. Limpa todos os espaços, novas linhas e os marcadores BEGIN/END
-            # Isso isola apenas a string Base64. O erro deve estar aqui.
+            # 3. Limpa todos os espaços, novas linhas e os marcadores BEGIN/END (resolve o erro Base64)
             private_key_limpa = private_key_corrompida.replace('\n', '').replace(' ', '')
             private_key_limpa = private_key_limpa.replace('-----BEGINPRIVATEKEY-----', '').replace('-----ENDPRIVATEKEY-----', '')
             
-            # 4. Adiciona os marcadores BEGIN/END de volta, com a formatação correta do Python
-            # Isso é crucial para que o gspread/Google saiba o que é
+            # 4. Adiciona os marcadores BEGIN/END de volta com a formatação correta que o gspread exige
             secrets_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{private_key_limpa}\n-----END PRIVATE KEY-----\n"
             
             # Tenta autenticar com a chave limpa e reformatada
