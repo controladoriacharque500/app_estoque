@@ -4,6 +4,7 @@ import pandas as pd
 from gspread import service_account, service_account_from_dict 
 
 # --- Configurações Iniciais ---
+# Este arquivo 'credentials.json' não será mais usado, pois a chave está no Streamlit Secrets
 CREDENTIALS_PATH = "credentials.json"
 PLANILHA_NOME = "Estoque_Loja_Analitico"
 
@@ -41,26 +42,30 @@ def formatar_br_numero(x):
     return s.replace('.', '#TEMP#').replace(',', '.').replace('#TEMP#', ',')
 
 
-# --- Conexão e Carregamento de Dados (SOLUÇÃO FINAL E SEGURA) ---
+# --- Conexão e Carregamento de Dados (SOLUÇÃO FINAL DE BASE64 E CONEXÃO) ---
 @st.cache_data(ttl=600)
 def load_data():
     """Conecta e carrega os dados da planilha, garantindo tipos numéricos."""
     try:
-        # Tenta carregar do Streamlit Secrets (modo Cloud)
         if "gcp_service_account" in st.secrets:
-            # --- Rotina de Limpeza da Chave Privada (Correção do Erro .copy() e Base64) ---
+            # --- Rotina de Limpeza e Padding da Chave Privada ---
             
-            # 1. CONVERTE o objeto de segredo em um dicionário normal, resolvendo o erro '.copy()'
+            # 1. Converte para dicionário (resolve erro .copy())
             secrets_dict = dict(st.secrets["gcp_service_account"])
-            
-            # 2. Extrai o valor potencialmente corrompido
             private_key_corrompida = secrets_dict["private_key"]
             
-            # 3. Limpa todos os espaços, novas linhas e os marcadores BEGIN/END (resolve o erro Base64)
+            # 2. Limpa todos os caracteres indesejados (espaços, newlines, headers)
             private_key_limpa = private_key_corrompida.replace('\n', '').replace(' ', '')
             private_key_limpa = private_key_limpa.replace('-----BEGINPRIVATEKEY-----', '').replace('-----ENDPRIVATEKEY-----', '')
             
-            # 4. Adiciona os marcadores BEGIN/END de volta com a formatação correta que o gspread exige
+            # 3. **CORREÇÃO FINAL DO BASE64 (Padding Forçado)**
+            # Corrige o erro 'Incorrect padding' e o erro '1 more than a multiple of 4'
+            # Isso garante que a string Base64 tenha o tamanho correto para decodificação.
+            padding_necessario = len(private_key_limpa) % 4
+            if padding_necessario != 0:
+                private_key_limpa += '=' * (4 - padding_necessario)
+            
+            # 4. Adiciona os marcadores BEGIN/END de volta com a formatação correta
             secrets_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{private_key_limpa}\n-----END PRIVATE KEY-----\n"
             
             # Tenta autenticar com a chave limpa e reformatada
@@ -173,4 +178,8 @@ if not df_estoque.empty:
 
 else:
     st.error("Não foi possível carregar os dados. Verifique suas credenciais, o nome da planilha ou a conexão.")
+
+else:
+    st.error("Não foi possível carregar os dados. Verifique suas credenciais, o nome da planilha ou a conexão.")
+
 
