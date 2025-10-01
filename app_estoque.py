@@ -13,12 +13,12 @@ COLUNAS_EXIBICAO = [
     'Produto', 
     'Grupo_de_Estoque', 
     'Em_Estoque', 
-    'Media de venda semanal', 
+    ' Media de venda semanal', 
     'Analise de estoque'
 ]
 
 # Colunas que precisam de limpeza e conversão numérica
-COLUNAS_NUMERICAS_LIMPEZA = ['Em_Estoque', 'Media de venda semanal'] 
+COLUNAS_NUMERICAS_LIMPEZA = ['Em_Estoque', ' Media de venda semanal'] 
 
 # --- Configurações de Página ---
 st.set_page_config(
@@ -165,3 +165,4 @@ if not df_estoque.empty:
 
 else:
     st.error("Não foi possível carregar os dados. Verifique suas credenciais, o nome da planilha ou a conexão.")
+
