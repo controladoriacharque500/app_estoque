@@ -41,15 +41,33 @@ def formatar_br_numero(x):
     return s.replace('.', '#TEMP#').replace(',', '.').replace('#TEMP#', ',')
 
 
-# --- Conexão e Carregamento de Dados (AJUSTADO PARA A NUVEM) ---
+# --- Conexão e Carregamento de Dados (SOLUÇÃO DE LIMPEZA DE CHAVE) ---
 @st.cache_data(ttl=600)
 def load_data():
     """Conecta e carrega os dados da planilha, garantindo tipos numéricos."""
     try:
         # Tenta carregar do Streamlit Secrets (modo Cloud)
         if "gcp_service_account" in st.secrets:
-            # Carrega as credenciais a partir do dicionário de segredos injetado
-            gc = service_account_from_dict(st.secrets["gcp_service_account"])
+            # --- Rotina de Limpeza da Chave Privada ---
+            
+            # 1. Copia o dicionário de segredos para manipulação
+            secrets_dict = st.secrets["gcp_service_account"].copy() 
+            
+            # 2. Extrai o valor potencialmente corrompido
+            private_key_corrompida = secrets_dict["private_key"]
+            
+            # 3. Limpa todos os espaços, novas linhas e os marcadores BEGIN/END
+            # Isso isola apenas a string Base64. O erro deve estar aqui.
+            private_key_limpa = private_key_corrompida.replace('\n', '').replace(' ', '')
+            private_key_limpa = private_key_limpa.replace('-----BEGINPRIVATEKEY-----', '').replace('-----ENDPRIVATEKEY-----', '')
+            
+            # 4. Adiciona os marcadores BEGIN/END de volta, com a formatação correta do Python
+            # Isso é crucial para que o gspread/Google saiba o que é
+            secrets_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{private_key_limpa}\n-----END PRIVATE KEY-----\n"
+            
+            # Tenta autenticar com a chave limpa e reformatada
+            gc = service_account_from_dict(secrets_dict)
+            
         else:
             # Se não estiver na nuvem (rodando localmente), usa o arquivo .json
             gc = service_account(filename=CREDENTIALS_PATH)
@@ -60,20 +78,16 @@ def load_data():
         data = aba.get_all_records()
         df = pd.DataFrame(data)
         
-        # --- LIMPEZA: GARANTE QUE OS DADOS SÃO NUMÉRICOS NO PYTHON ---
+        # --- Limpeza de Tipos Numéricos ---
         for col in COLUNAS_NUMERICAS_LIMPEZA:
             if col in df.columns:
-                # 1. Converte para string (para limpar)
                 df[col] = df[col].astype(str).str.strip()
-                # 2. Remove possíveis símbolos de moeda (R$) e espaços
                 df[col] = df[col].str.replace('R$', '', regex=False).str.strip()
-                # 3. Se a planilha usa VÍRGULA como decimal, trocamos para PONTO (padrão Pandas)
                 df[col] = df[col].str.replace(',', '.', regex=False)
-                # 4. Força a conversão para float (número decimal)
                 df[col] = pd.to_numeric(df[col], errors='coerce') 
                 
         df.dropna(how='all', inplace=True) 
-
+        
         return df
     except Exception as e:
         st.error(f"Erro ao carregar dados da planilha: {e}")
@@ -88,12 +102,10 @@ st.markdown("---")
 if not df_estoque.empty:
     
     # --- PREPARO DOS DADOS DE FILTRO ---
-    # Garante que as colunas de filtro existem e que os valores 'NaN' são tratados para o combobox
     for col_filtro in ['Analise de estoque', 'Grupo_de_Estoque']:
         if col_filtro in df_estoque.columns:
             df_estoque[col_filtro] = df_estoque[col_filtro].astype(str).fillna('Não Informado')
 
-    # Opções para os combobox
     opcoes_situacao = ['Todos'] + sorted(df_estoque['Analise de estoque'].unique().tolist())
     opcoes_grupo = ['Todos'] + sorted(df_estoque['Grupo_de_Estoque'].unique().tolist())
     
@@ -106,11 +118,9 @@ if not df_estoque.empty:
         codigo_produto = st.text_input("🔍 Filtrar por Código do Produto:", help="Filtro parcial (contém)")
 
     with col2:
-        # COMBOBOX para Situação
         situacao_filtro = st.selectbox("📝 Filtrar por Situação de Analise:", opcoes_situacao)
 
     with col3:
-        # COMBOBOX para Grupo
         grupo_filtro = st.selectbox("🏭 Filtrar por Grupo de Estoque:", opcoes_grupo)
         
 
@@ -165,4 +175,3 @@ if not df_estoque.empty:
 
 else:
     st.error("Não foi possível carregar os dados. Verifique suas credenciais, o nome da planilha ou a conexão.")
-
