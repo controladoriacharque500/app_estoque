@@ -39,7 +39,7 @@ def formatar_br_numero(x):
     s = f"{x:,.4f}" if x % 1 != 0 or x == 0 else f"{int(x):,}" 
     
     # Inverte os separadores: vírgula milhar -> ponto, ponto decimal -> vírgula
-    return s.replace('.', '#TEMP#').replace(',', '.').replace('#TEMP#', ',')
+    return s.replace('.', '#TEMP#').replace(',', '.').replace('#TEMP#', ',').strip()
 
 
 # --- Conexão e Carregamento de Dados (SOLUÇÃO FINAL DE BASE64 E CONEXÃO) ---
@@ -178,6 +178,7 @@ if not df_estoque.empty:
 
 else:
     st.error("Não foi possível carregar os dados. Verifique suas credenciais, o nome da planilha ou a conexão.")
+
 
 
 
