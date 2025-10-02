@@ -36,7 +36,7 @@ def formatar_br_numero(x):
         return ''
     
     # Decide se formata como inteiro ou com duas casas decimais
-    s = f"{x:,.5f}" if x % 1 != 0 or x == 0 else f"{int(x):,}" 
+    s = f"{x:,.4f}" if x % 1 != 0 or x == 0 else f"{int(x):,}" 
     
     # Inverte os separadores: vírgula milhar -> ponto, ponto decimal -> vírgula
     return s.replace('.', '#TEMP#').replace(',', '.').replace('#TEMP#', ',')
@@ -86,7 +86,6 @@ def load_data():
             if col in df.columns:
                 df[col] = df[col].astype(str).str.strip()
                 df[col] = df[col].str.replace('R$', '', regex=False).str.strip()
-                df[col] = df[col].str.replace('.', '', regex=False) 
                 df[col] = df[col].str.replace(',', '.', regex=False)
                 df[col] = pd.to_numeric(df[col], errors='coerce') 
                 
@@ -179,6 +178,7 @@ if not df_estoque.empty:
 
 else:
     st.error("Não foi possível carregar os dados. Verifique suas credenciais, o nome da planilha ou a conexão.")
+
 
 
 
