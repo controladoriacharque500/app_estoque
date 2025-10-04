@@ -87,14 +87,14 @@ def load_data():
         df = pd.DataFrame(data)
         
         # --- Limpeza de Tipos Numéricos ---
-        '''for col in COLUNAS_NUMERICAS_LIMPEZA:
-            if col in df.columns:
-                df[col] = df[col].astype(str).str.strip()
-                df[col] = df[col].str.replace('R$', '', regex=False).str.strip()
-                df[col] = df[col].str.replace(',', '.', regex=False)
-                df[col] = pd.to_numeric(df[col], errors='coerce') 
+        #for col in COLUNAS_NUMERICAS_LIMPEZA:
+            #if col in df.columns:
+                #df[col] = df[col].astype(str).str.strip()
+                #df[col] = df[col].str.replace('R$', '', regex=False).str.strip()
+                #df[col] = df[col].str.replace(',', '.', regex=False)
+                #df[col] = pd.to_numeric(df[col], errors='coerce') 
                 
-        df.dropna(how='all', inplace=True)''' 
+        #df.dropna(how='all', inplace=True) 
         
         return df
     except Exception as e:
@@ -183,6 +183,7 @@ if not df_estoque.empty:
 
 else:
     st.error("Não foi possível carregar os dados. Verifique suas credenciais, o nome da planilha ou a conexão.")
+
 
 
 
