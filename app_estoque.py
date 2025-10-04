@@ -34,11 +34,16 @@ def formatar_br_numero(x):
     """Formata número usando ponto como separador de milhar e vírgula como decimal."""
     if pd.isna(x):
         return ''
-    
-    # Decide se formata como inteiro ou com duas casas decimais
-    s = f"{x:,.4f}" if x % 1 != 0 or x == 0 else f"{int(x):,}" 
-    
-    # Inverte os separadores: vírgula milhar -> ponto, ponto decimal -> vírgula
+
+    # 1. Decide se formata como inteiro ou com 4 casas decimais
+    s = f"{x:,.4f}" if x % 1 != 0 or x == 0 else f"{int(x):,}"
+
+    # 2. CORREÇÃO FORÇADA: Se a string formatada for pequena (ex: '758') E for composta
+    # apenas por dígitos, assume que o zero e o ponto foram perdidos na leitura.
+    if len(s) == 3 and s.isdigit():
+        s = "0." + s # Ex: '758' vira '0.758'
+
+    # 3. Inverte os separadores: vírgula milhar -> ponto, ponto decimal -> vírgula
     return s.replace('.', '#TEMP#').replace(',', '.').replace('#TEMP#', ',').strip()
 
 
@@ -82,14 +87,14 @@ def load_data():
         df = pd.DataFrame(data)
         
         # --- Limpeza de Tipos Numéricos ---
-        for col in COLUNAS_NUMERICAS_LIMPEZA:
+        '''for col in COLUNAS_NUMERICAS_LIMPEZA:
             if col in df.columns:
                 df[col] = df[col].astype(str).str.strip()
                 df[col] = df[col].str.replace('R$', '', regex=False).str.strip()
                 df[col] = df[col].str.replace(',', '.', regex=False)
                 df[col] = pd.to_numeric(df[col], errors='coerce') 
                 
-        df.dropna(how='all', inplace=True) 
+        df.dropna(how='all', inplace=True)''' 
         
         return df
     except Exception as e:
@@ -178,6 +183,7 @@ if not df_estoque.empty:
 
 else:
     st.error("Não foi possível carregar os dados. Verifique suas credenciais, o nome da planilha ou a conexão.")
+
 
 
 
