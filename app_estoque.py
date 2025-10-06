@@ -23,7 +23,7 @@ COLUNAS_NUMERICAS_LIMPEZA = ['Em_Estoque', 'Media de venda semanal']
 
 # --- Configurações de Página ---
 st.set_page_config(
-    page_title="Consulta de Estoque",
+    page_title="Consulta de Estoque Loja",
     page_icon="📦",
     layout="wide"
 )
@@ -183,6 +183,7 @@ if not df_estoque.empty:
 
 else:
     st.error("Não foi possível carregar os dados. Verifique suas credenciais, o nome da planilha ou a conexão.")
+
 
 
 
