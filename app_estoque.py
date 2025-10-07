@@ -104,7 +104,7 @@ def load_data():
 # --- Carregar e Exibir os Dados ---
 df_estoque = load_data()
 
-st.title("📦 Consulta de Estoque")
+st.title("📦 Consulta de Estoque Loja")
 st.markdown("---")
 
 if not df_estoque.empty:
@@ -183,6 +183,7 @@ if not df_estoque.empty:
 
 else:
     st.error("Não foi possível carregar os dados. Verifique suas credenciais, o nome da planilha ou a conexão.")
+
 
 
 
