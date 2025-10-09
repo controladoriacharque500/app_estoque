@@ -40,8 +40,8 @@ def formatar_br_numero(x):
 
     # 2. CORREÇÃO FORÇADA: Se a string formatada for pequena (ex: '758') E for composta
     # apenas por dígitos, assume que o zero e o ponto foram perdidos na leitura.
-    if len(s) == 3 and s.isdigit():
-        s = "0." + s # Ex: '758' vira '0.758'
+    #if len(s) == 3 and s.isdigit():
+        #s = "0." + s # Ex: '758' vira '0.758'
 
     # 3. Inverte os separadores: vírgula milhar -> ponto, ponto decimal -> vírgula
     return s.replace('.', '#TEMP#').replace(',', '.').replace('#TEMP#', ',').strip()
@@ -183,6 +183,7 @@ if not df_estoque.empty:
 
 else:
     st.error("Não foi possível carregar os dados. Verifique suas credenciais, o nome da planilha ou a conexão.")
+
 
 
 
