@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 # Importante: service_account_from_dict é necessário para ler a chave do st.secrets
 from gspread import service_account, service_account_from_dict 
 
@@ -20,6 +21,24 @@ COLUNAS_EXIBICAO = [
 
 # Colunas que precisam de limpeza e conversão numérica
 COLUNAS_NUMERICAS_LIMPEZA = ['Em_Estoque', 'Media de venda semanal'] 
+
+# --- Formatar data (Padrão Brasileiro) ---
+def formatar_br_data(d):
+    """
+    Formata um objeto datetime/Timestamp para o formato brasileiro dd/mm/aaaa.
+    Lida com valores nulos (NaT) e vazios (pd.isna).
+    """
+    if pd.isna(d) or pd.isnull(d):
+        return ''
+
+
+
+    try:
+        # Usa strftime, o método padrão para formatar objetos datetime
+        return d.strftime("%d/%m/%Y")
+    except AttributeError:
+        # Retorna o valor original (string, número) se a conversão falhou
+        return str(d)
 
 # --- Configurações de Página ---
 st.set_page_config(
@@ -82,6 +101,7 @@ def load_data():
             gc = service_account(filename=CREDENTIALS_PATH)
             
         planilha = gc.open(PLANILHA_NOME)
+        data_atualizacao_raw = planilha.get_lastUpdateTime()
         aba = planilha.sheet1
 
         data = aba.get_all_records()
@@ -97,40 +117,60 @@ def load_data():
                 
         #df.dropna(how='all', inplace=True) 
         
-        return df
+        return df, data_atualizacao_raw
     except Exception as e:
         st.error(f"Erro ao carregar dados da planilha: {e}")
-        return pd.DataFrame()
+        return pd.DataFrame(), None
 
 # --- Carregar e Exibir os Dados ---
-df_estoque = load_data()
+df_estoque, data_atualizacao_raw = load_data()
+
+# --- FORMATAÇÃO E EXIBIÇÃO DA DATA DE ATUALIZAÇÃO ---
+data_atualizacao_formatada = ""
+if data_atualizacao_raw:
+    try:
+        # Converte a string ISO (gspread) para datetime
+        data_dt = datetime.fromisoformat(data_atualizacao_raw.replace('Z', '+00:00'))
+        data_atualizacao_formatada = formatar_br_data(data_dt)
+    except Exception:
+        data_atualizacao_formatada = "Erro ao formatar data"
+
 
 st.title("📦 Consulta de Estoque Loja")
+if data_atualizacao_formatada:
+    st.markdown(f"**Última Atualização:** {data_atualizacao_formatada}")
 st.markdown("---")
 
 if not df_estoque.empty:
     
     # --- PREPARO DOS DADOS DE FILTRO ---
-    for col_filtro in ['Analise de estoque', 'Grupo_de_Estoque']:
+    for col_filtro in ['Produto', 'Analise de estoque', 'Grupo_de_Estoque']:
         if col_filtro in df_estoque.columns:
             df_estoque[col_filtro] = df_estoque[col_filtro].astype(str).fillna('Não Informado')
-
+            
+    opcoes_produto = ['Todos'] + sorted(df_estoque['Produto'].unique().tolist())
     opcoes_situacao = ['Todos'] + sorted(df_estoque['Analise de estoque'].unique().tolist())
     opcoes_grupo = ['Todos'] + sorted(df_estoque['Grupo_de_Estoque'].unique().tolist())
     
     # --- INTERFACE DE FILTRO ---
     st.subheader("Filtros de Consulta")
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         codigo_produto = st.text_input("🔍 Filtrar por Código do Produto:", help="Filtro parcial (contém)")
 
     with col2:
-        situacao_filtro = st.selectbox("📝 Filtrar por Situação de Analise:", opcoes_situacao)
+        # COMBOBOX para Situação
+        produto_filtro = st.selectbox("🏭 Filtrar por Produto:", opcoes_produto)
 
     with col3:
-        grupo_filtro = st.selectbox("🏭 Filtrar por Grupo de Estoque:", opcoes_grupo)
+        # COMBOBOX para Situação
+        situacao_filtro = st.selectbox("📝 Filtrar por Situação de Analise:", opcoes_situacao)
+
+    with col4:
+        # COMBOBOX para Grupo
+        grupo_filtro = st.selectbox("🗃️ Filtrar por Grupo de Estoque:", opcoes_grupo)
         
 
     # --- LÓGICA DE FILTRAGEM ---
@@ -147,6 +187,9 @@ if not df_estoque.empty:
         ]
 
     # 2. Filtro por Situação (selectbox)
+    if produto_filtro != 'Todos':
+        df_filtrado = df_filtrado[df_filtrado['Produto'] == produto_filtro]
+        
     if situacao_filtro != 'Todos':
         df_filtrado = df_filtrado[df_filtrado['Analise de estoque'] == situacao_filtro]
     
@@ -184,6 +227,7 @@ if not df_estoque.empty:
 
 else:
     st.error("Não foi possível carregar os dados. Verifique suas credenciais, o nome da planilha ou a conexão.")
+
 
 
 
